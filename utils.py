@@ -10,7 +10,8 @@ Config['root_path'] = '/home/shashank/Desktop/Coursework/Sem2/DeepLearning/Week4
 Config['meta_file'] = 'polyvore_item_metadata.json'
 Config['checkpoint_path'] = 'ckpts'
 Config['use_cuda'] = True
-Config['debug'] = True
+Config['debug'] = False
+Config['debug_size'] = 500
 Config['num_epochs'] = 20
 Config['batch_size'] = 64
 

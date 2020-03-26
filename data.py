@@ -17,7 +17,7 @@ class polyvore_dataset:
         self.root_dir = Config['root_path']
         self.image_dir = osp.join(self.root_dir, 'images')
         self.transforms = self.get_data_transforms()
-        self.X_train, self.X_test, self.y_train, self.y_test, self.classes = self.create_dataset()
+        self.X_train, self.X_valid, self.X_test, self.y_train, self.y_valid, self.y_test, self.classes = self.create_dataset()
 
 
 
@@ -25,6 +25,14 @@ class polyvore_dataset:
         data_transforms = {
             'train': transforms.Compose([
                 transforms.CenterCrop(224),
+                # transforms.RandomHorizontalFlip(),
+                # transforms.RandomVesrticalFlip(),
+                transforms.RandomRotation(45),
+                # transforms.ColorJitter(
+                #     brightness=0.4,
+                #     contrast=0.4,
+                #     saturation=0.4,
+                # ),
                 transforms.ToTensor(),
                 transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
             ]),
@@ -60,7 +68,8 @@ class polyvore_dataset:
 
         # split dataset
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-        return X_train, X_test, y_train, y_test, max(y) + 1
+        X_valid, X_test, y_valid, y_test = train_test_split(X_test, y_test, test_size=0.5)
+        return X_train, X_valid, X_test, y_train, y_valid, y_test, max(y) + 1
 
 
 
