@@ -1,20 +1,17 @@
-import tensorflow.keras
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Conv2D,MaxPooling2D,Dense,Dropout,Flatten,Input,GlobalAveragePooling2D
+from tensorflow.keras.applications.mobilenet import MobileNet
 from tensorflow.keras.models import Model
-from tensorflow.keras.regularizers import *
-from keras.optimizers import *
+from utils import Config
 
 class MyModel:
     def __init__(self,n_classes):
-        self.model = self.get_model(n_classes)
+        if Config['Custom_model']:
+            self.model = self.get_custom_model(n_classes)
+        else:
+            self.model = self.get_transfer_model(n_classes)
         return None
     
-    def get_model(self,n):
+    def get_custom_model(self,n):
         Input_1 = Input(shape=(224, 224, 3), name='Input_1')
         Convolution2D_1 = Conv2D(4, kernel_size=3, padding='same', activation='relu')(Input_1)
         Convolution2D_2 = Conv2D(4, kernel_size=3, padding= 'same' ,activation= 'relu')(Convolution2D_1)
@@ -49,22 +46,17 @@ class MyModel:
         model = Model([Input_1],[Dense_3])
         return model
     
-    
-    
-    def get_optimizer(self):
-    	return Adam()
-    
-    def is_custom_loss_function(self):
-    	return False
-    
-    def get_loss_function(self):
-    	return 'categorical_crossentropy'
-    
-    def get_batch_size(self):
-    	return 32
-    
-    def get_num_epoch(self):
-    	return 10
-    
-    def get_data_config(self):
-    	return '{"kfold": 1, "samples": {"validation": 1323, "training": 5292, "split": 1, "test": 0}, "datasetLoadOption": "batch", "shuffle": true, "numPorts": 1, "mapping": {"Label": {"port": "OutputPort0", "type": "Categorical", "options": {}, "shape": ""}, "Filename": {"port": "InputPort0", "type": "Image", "options": {"Normalization": false, "Scaling": 1, "rotation_range": 0, "Resize": false, "width_shift_range": 0, "horizontal_flip": false, "Height": 28, "height_shift_range": 0, "Width": 28, "shear_range": 0, "vertical_flip": false, "Augmentation": true, "pretrained": "None"}, "shape": ""}}, "dataset": {"type": "public", "samples": 6615, "name": "Soda Bottles"}}'
+    def get_transfer_model(self,n):
+            base_model = MobileNet(weights='imagenet', include_top=False)
+            x = base_model.output
+            x = GlobalAveragePooling2D()(x)
+            x = Dense(512, activation='relu')(x)
+            x = Dropout(0.2)(x)
+            x = Dense(512, activation='relu')(x)
+            x = Dropout(0.2)(x)   
+            predictions = Dense(n, activation = 'softmax')(x)
+            model = Model(inputs=base_model.input, outputs=predictions)
+         
+            for layer in base_model.layers:
+                layer.trainable = False
+            return model

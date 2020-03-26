@@ -1,14 +1,12 @@
-from tensorflow.keras.layers import GlobalAveragePooling2D, Dense
+from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from tensorflow.keras.models import Model
 
 from data import polyvore_dataset, DataGenerator
 from utils import Config
 
-from time import time
-import tensorflow as tf
 from tensorflow.keras.applications.mobilenet import MobileNet
-from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.callbacks import ModelCheckpoint
+import matplotlib.pyplot as plt 
 
 
 
@@ -17,14 +15,17 @@ if __name__=='__main__':
     # data generators
     dataset = polyvore_dataset()
     transforms = dataset.get_data_transforms()
-    X_train, X_test, y_train, y_test, n_classes = dataset.create_dataset()
+    X_train, X_valid, X_test, y_train, y_valid, y_test, n_classes = dataset.create_dataset()
 
     if Config['debug']:
-        train_set = (X_train[:1000], y_train[:1000], transforms['train'])
-        test_set = (X_test[:1000], y_test[:1000], transforms['test'])
-        dataset_size = {'train': 1000, 'test': 1000}
+        k = Config['debug_size']
+        train_set = (X_train[:k], y_train[:k], transforms['train'])
+        valid_set = (X_valid[:k], y_valid[:k], transforms['test'])
+        test_set = (X_test[:k], y_test[:k], transforms['test'])
+        dataset_size = {'train': k, 'test': k}
     else:
         train_set = (X_train, y_train, transforms['train'])
+        valid_set = (X_valid, y_valid, transforms['test'])
         test_set = (X_test, y_test, transforms['test'])
         dataset_size = {'train': len(y_train), 'test': len(y_test)}
 
@@ -34,11 +35,12 @@ if __name__=='__main__':
               }
 
     train_generator =  DataGenerator(train_set, dataset_size, params)
+    valid_generator = DataGenerator(valid_set, dataset_size, params)
     test_generator = DataGenerator(test_set, dataset_size, params)
 
 
     # Create a TensorBoard instance with the path to the logs directory
-    tensorboard = TensorBoard(log_dir='logs/{}'.format(time()))
+    # tensorboard = TensorBoard(log_dir='logs/{}'.format(time()))
     checkpoint = ModelCheckpoint(Config['checkpoint_path'],
                             monitor='val_acc',
                             verbose=1,
@@ -49,6 +51,9 @@ if __name__=='__main__':
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
     x = Dense(512, activation='relu')(x)
+    x = Dropout(0.2)(x)
+    x = Dense(512, activation='relu')(x)
+    x = Dropout(0.2)(x)   
     predictions = Dense(n_classes, activation = 'softmax')(x)
     model = Model(inputs=base_model.input, outputs=predictions)
  
@@ -56,20 +61,28 @@ if __name__=='__main__':
         layer.trainable = False
  
     # define optimizers
-    model.compile(optimizer='rmsprop', 
+    model.compile(optimizer='adam', 
                   loss='categorical_crossentropy', 
                   metrics=['accuracy'])
  
     model.summary()
 
     # training
-    model.fit(train_generator,
-              validation_data=test_generator, 
+    hist = model.fit(train_generator,
+              validation_data=valid_generator, 
               epochs=Config['num_epochs'],
-              callbacks=[checkpoint,tensorboard])
+              callbacks=[checkpoint])
 
+    loss = model.evaluate(test_generator)
+    plt.plot(hist.history['accuracy'])
+    plt.plot(hist.history['val_accuracy'])
+    plt.title('Test accuracy: '+str(loss[1]))
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    # plt.show()
+    plt.savefig('learning_Curve.png')
+    print(loss)
 
-
-
-
-
+    # import os
+    # os.system("sudo shutdown -P now")

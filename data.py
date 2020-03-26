@@ -14,7 +14,10 @@ from utils import Config
 
 class polyvore_dataset:
     def __init__(self):
-        self.root_dir = Config['root_path']
+        if Config['aws']:
+            self.root_dir = Config['root_path_aws']
+        else:
+            self.root_dir = Config['root_path_pc']
         self.image_dir = osp.join(self.root_dir, 'images')
         self.transforms = self.get_data_transforms()
         self.X_train, self.X_valid, self.X_test, self.y_train, self.y_valid, self.y_test, self.classes = self.create_dataset()
@@ -27,7 +30,7 @@ class polyvore_dataset:
                 transforms.CenterCrop(224),
                 # transforms.RandomHorizontalFlip(),
                 # transforms.RandomVesrticalFlip(),
-                transforms.RandomRotation(45),
+                # transforms.RandomRotation(45),
                 # transforms.ColorJitter(
                 #     brightness=0.4,
                 #     contrast=0.4,
@@ -79,7 +82,11 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
         self.shuffle = params['shuffle']
         self.n_classes = params['n_classes']
         self.X, self.y, self.transform = dataset
-        self.image_dir = osp.join(Config['root_path'], 'images')
+        if Config['aws']:
+            self.root_dir = Config['root_path_aws']
+        else:
+            self.root_dir = Config['root_path_pc']
+        self.image_dir = osp.join(self.root_dir, 'images')
         self.on_epoch_end()
 
 
