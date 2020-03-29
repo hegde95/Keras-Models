@@ -116,4 +116,5 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
             np.random.shuffle(self.indexes)
 
 
-
+if __name__=='__main__':
+    dataset = polyvore_dataset()

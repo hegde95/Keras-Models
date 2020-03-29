@@ -1,9 +1,18 @@
-from data import polyvore_dataset, DataGenerator
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Mar 28 21:17:16 2020
+
+@author: shashank
+"""
+
+from data2 import polyvore_dataset, DataGenerator
 from utils import Config
-from model import MyModel
+from model2 import MyModel
 
 from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt 
+# from keras.utils.vis_utils import plot_model
 
 
 if __name__=='__main__':
@@ -21,8 +30,8 @@ if __name__=='__main__':
     if Config['debug']:
         k = Config['debug_size']
         train_set = (X_train[:k], y_train[:k], transforms['train'])
-        valid_set = (X_valid[:k], y_valid[:k], transforms['test'])
-        test_set = (X_test[:k], y_test[:k], transforms['test'])
+        valid_set = (X_valid[:k], y_valid[:k//5], transforms['test'])
+        test_set = (X_test[:k], y_test[:k//5], transforms['test'])
         dataset_size = {'train': k, 'test': k}
     else:
         train_set = (X_train, y_train, transforms['train'])
@@ -45,10 +54,10 @@ if __name__=='__main__':
                             save_best_only=False,
                             mode='max')
 
-    model = MyModel(n_classes).model
+    model = MyModel().model
     # define optimizers
     model.compile(optimizer='adam', 
-                  loss='categorical_crossentropy', 
+                  loss='binary_crossentropy', 
                   metrics=['accuracy'])
  
     model.summary()

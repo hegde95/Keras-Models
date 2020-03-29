@@ -1,17 +1,18 @@
-from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
-from tensorflow.keras.models import Model
-
 from data import polyvore_dataset, DataGenerator
 from utils import Config
+from model import MyModel
 
-from tensorflow.keras.applications.mobilenet import MobileNet
 from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt 
 
 
-
 if __name__=='__main__':
-
+    
+    if Config['Custom_model']:
+        name = 'Custom_model'
+    else:
+        name = 'Transfer_model'
+        
     # data generators
     dataset = polyvore_dataset()
     transforms = dataset.get_data_transforms()
@@ -38,34 +39,21 @@ if __name__=='__main__':
     valid_generator = DataGenerator(valid_set, dataset_size, params)
     test_generator = DataGenerator(test_set, dataset_size, params)
 
-
-    # Create a TensorBoard instance with the path to the logs directory
-    # tensorboard = TensorBoard(log_dir='logs/{}'.format(time()))
-    checkpoint = ModelCheckpoint(Config['checkpoint_path'],
+    checkpoint = ModelCheckpoint(Config['checkpoint_path']+'/'+name,
                             monitor='val_acc',
                             verbose=1,
                             save_best_only=False,
                             mode='max')
-    # Use GPU
-    base_model = MobileNet(weights='imagenet', include_top=False)
-    x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    x = Dense(512, activation='relu')(x)
-    x = Dropout(0.2)(x)
-    x = Dense(512, activation='relu')(x)
-    x = Dropout(0.2)(x)   
-    predictions = Dense(n_classes, activation = 'softmax')(x)
-    model = Model(inputs=base_model.input, outputs=predictions)
- 
-    for layer in base_model.layers:
-        layer.trainable = False
- 
+
+    model = MyModel(n_classes).model
     # define optimizers
     model.compile(optimizer='adam', 
                   loss='categorical_crossentropy', 
                   metrics=['accuracy'])
  
     model.summary()
+
+    print(Config)
 
     # training
     hist = model.fit(train_generator,
@@ -79,10 +67,14 @@ if __name__=='__main__':
     plt.title('Test accuracy: '+str(loss[1]))
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    # plt.show()
-    plt.savefig('learning_Curve.png')
+    plt.legend(['Train', 'valid'], loc='upper left')
+    plt.savefig(Config['checkpoint_path']+'/'+name+'.png')
     print(loss)
 
-    # import os
-    # os.system("sudo shutdown -P now")
+    if Config['shutown']:
+        import os
+        os.system("sudo shutdown -P now")
+
+
+
+
