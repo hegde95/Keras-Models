@@ -36,7 +36,7 @@ class polyvore_dataset:
         data_transforms = {
             'train': transforms.Compose([
                 transforms.CenterCrop(224),
-                # transforms.RandomHorizontalFlip(),
+                transforms.RandomHorizontalFlip(),
                 # transforms.RandomVesrticalFlip(),
                 # transforms.RandomRotation(45),
                 # transforms.ColorJitter(

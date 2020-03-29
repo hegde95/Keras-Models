@@ -1,7 +1,9 @@
 from tensorflow.keras.layers import Conv2D,MaxPooling2D,Dense,Dropout,Flatten,Input,GlobalAveragePooling2D,BatchNormalization
 from tensorflow.keras.applications.mobilenet import MobileNet
+from tensorflow.keras.applications.xception import Xception
 from tensorflow.keras.models import Model, Sequential
 from utils import Config
+import tensorflow
 
 class MyModel:
     def __init__(self,n_classes):
@@ -87,14 +89,16 @@ class MyModel:
     #     return model
     
     def get_transfer_model(self,n):
-            base_model = MobileNet(weights='imagenet', include_top=False)
+            # base_model = MobileNet(weights='imagenet', include_top=False)
+            base_model = Xception(layers=tensorflow.keras.layers, weights='imagenet', include_top=False)
             x = base_model.output
+            x = BatchNormalization()(x)
             x = GlobalAveragePooling2D()(x)
             x = Flatten()(x)
             x = Dense(512, activation='relu')(x)
-            x = Dropout(0.2)(x)
+            # x = Dropout(0.2)(x)
             x = Dense(512, activation='relu')(x)
-            x = Dropout(0.2)(x)   
+            # x = Dropout(0.2)(x)   
             predictions = Dense(n, activation = 'softmax')(x)
             model = Model(inputs=base_model.input, outputs=predictions)
          
