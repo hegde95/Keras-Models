@@ -6,15 +6,19 @@ Created on Sun Mar 29 04:47:28 2020
 @author: shashank
 """
 
-from tensorflow.keras.layers import Conv2D,MaxPooling2D,Dense,Dropout,Flatten,Input,GlobalAveragePooling2D, concatenate
+from tensorflow.keras.layers import Conv2D,MaxPooling2D,Dense,Dropout,Flatten,Input,GlobalAveragePooling2D, concatenate, Lambda, BatchNormalization
 from tensorflow.keras.applications.mobilenet import MobileNet
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, Sequential
 from utils import Config
+import numpy as np
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.initializers import RandomNormal
+import tensorflow.keras.backend as K
 
 class MyModel:
     def __init__(self):
         if Config['Custom_model']:
-            self.model = self.get_custom_model()
+            self.model = self.get_siamese_model()
         else:
             self.model = self.get_transfer_model()
         return None
@@ -120,3 +124,79 @@ class MyModel:
 
         model = Model(inputs=[model1.input, model2.input], outputs=predictions)
         return model
+
+    def get_siamese_model(self):
+        """
+            Model architecture
+        """
+        input_shape = (224, 224, 3)
+        # Define the tensors for the two input images
+        left_input = Input(input_shape)
+        right_input = Input(input_shape)
+        
+        # Convolutional Neural Network
+        # model = Sequential()
+        # model.add(Conv2D(4, (3,3), activation='relu', input_shape=input_shape, kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), kernel_regularizer=l2(2e-4)))
+        # model.add(BatchNormalization())
+        # model.add(MaxPooling2D())
+        # model.add(Conv2D(8, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2), kernel_regularizer=l2(2e-4)))
+        # model.add(BatchNormalization())
+        # model.add(MaxPooling2D())
+        # model.add(Conv2D(16, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2), kernel_regularizer=l2(2e-4)))
+        # model.add(BatchNormalization())
+        # model.add(MaxPooling2D())
+        # model.add(Conv2D(32, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2), kernel_regularizer=l2(2e-4)))
+        # model.add(BatchNormalization())
+        # model.add(MaxPooling2D())
+        # model.add(Conv2D(32, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2), kernel_regularizer=l2(2e-4)))
+        # model.add(BatchNormalization())
+        # model.add(MaxPooling2D())
+        # model.add(Conv2D(64, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2), kernel_regularizer=l2(2e-4)))
+        # model.add(Flatten())
+        # model.add(Dense(512, activation='sigmoid', kernel_regularizer=l2(1e-3), kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2),bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+
+        model = Sequential()
+        model.add(Conv2D(4, (3,3), activation='relu', input_shape=input_shape, kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2)))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D())
+        model.add(Conv2D(8, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D())
+        model.add(Conv2D(16, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D())
+        model.add(Conv2D(32, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D())
+        model.add(Conv2D(32, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D())
+        model.add(Conv2D(64, (3,3), activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2), bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+        model.add(Flatten())
+        model.add(Dense(512, activation='relu', kernel_initializer=RandomNormal(mean=0.0, stddev=1e-2),bias_initializer=RandomNormal(mean=0.5, stddev=1e-2)))
+        
+        # Generate the encodings (feature vectors) for the two images
+        encoded_l = model(left_input)
+        encoded_r = model(right_input)
+        
+        # Add a customized layer to compute the absolute difference between the encodings
+        L1_layer = Lambda(lambda tensors:K.abs(tensors[0] - tensors[1]))
+        L1_distance = L1_layer([encoded_l, encoded_r])
+        
+        # Add a dense layer with a sigmoid unit to generate the similarity score
+        prediction = Dense(1,activation='sigmoid',bias_initializer=RandomNormal(mean=0.5, stddev=1e-2))(L1_distance)
+        
+        # Connect the inputs with the outputs
+        siamese_net = Model(inputs=[left_input,right_input],outputs=prediction)
+        
+        # return the model
+        return siamese_net
+
+def contrastive_loss(y_true, y_pred):
+    '''Contrastive loss from Hadsell-et-al.'06
+    http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+    '''
+    margin = 1
+    square_pred = K.square(y_pred)
+    margin_square = K.square(K.maximum(margin - y_pred, 0))
+    return K.mean(y_true * square_pred + (1 - y_true) * margin_square)

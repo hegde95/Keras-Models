@@ -17,11 +17,11 @@ Config['use_cuda'] = True
 Config['shutown'] = False
 
 # Debug options
-Config['debug'] = False
-Config['debug_size'] = 10000
+Config['debug'] = True
+Config['debug_size'] = 100000
 
 # Training Options
 Config['Custom_model'] = True
 Config['num_epochs'] = 10
 Config['batch_size'] = 64
-Config['learning_rate'] = 0.001
+Config['learning_rate'] = 0.0000001

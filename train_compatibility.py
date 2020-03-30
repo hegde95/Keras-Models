@@ -8,11 +8,12 @@ Created on Sat Mar 28 21:17:16 2020
 
 from data2 import polyvore_dataset, DataGenerator
 from utils import Config
-from model2 import MyModel
+from model2 import MyModel, contrastive_loss
 
 from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt 
 # from keras.utils.vis_utils import plot_model
+
 
 
 if __name__=='__main__':
